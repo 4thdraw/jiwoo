@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 
 // api
-import { productApi } from "./api/product";
+import { productApi } from "./api/product.ts";
 // component파일 
 import Hd from "./component/layout/Hd";
 import Mainvideo from "./component/banner/Videobanner"
@@ -22,22 +22,36 @@ import RegistrationP from "./pages/Registration_p";
 // css
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+//commonts
+import { Productts } from './ts/common.ts'
+
+
 
 function App() {
-  const [content, setCont] = useState(null); //api 데이터 변수
-  const [sharedState, setSharedState] = useState([]); //장바구니라우터에게 전달할 pk Array
+  const [content, setCont] = useState<Productts[] | null>(null); //api 데이터 변수
+  const [sharedState, setSharedState] = useState<number[]>([]); //장바구니라우터에게 전달할 pk Array
 
   //비동기 데이터 전달 함수 1회호출하기 위해 상위컴포넌트로 이동, props로 slice 처리 후 전달
-  const fetchDataAndSetState = async () => {
+  const fetchDataAndSetState = async (): Promise<void> => {
     try {
-      const response = await productApi("product");
+      const response = await productApi("product"); // 2가지경우에 응대하는 각 식이 존재해야해
+      if (response instanceof Error) {
+        throw response; // 에러가 발생한 경우 다시 throw하여 catch 블록으로 전달
+      }
+      if (Array.isArray(response.data)) {
       setCont([...response.data]);
+      }  else {
+        // 만약 response.data가 배열이 아니라면 예외 처리
+        throw new Error('Response data is not an array');
+      }
+
+
     } catch (error) {
       console.log(error);
     }
   };
 
-  const updateSharedState = (childliftupvalue) => {
+  const updateSharedState = (childliftupvalue : number[]) => {
     setSharedState(childliftupvalue);
     //실행식은 자식 컴포넌트에서 자식컴포넌트들이 공유해야하는 상태변수를 부모가 관리
     //실행식이 useEffect에 없는 이유임
@@ -47,6 +61,11 @@ function App() {
     //상품 api 딱 한번만 실행
     fetchDataAndSetState();
   }, []);
+
+  useEffect(()=>{
+    console.log("ts interface 복붙용",content)
+    console.log("ts interface 복붙용",sharedState)
+  },[content, sharedState])
 
 
   return (
@@ -91,6 +110,7 @@ function App() {
                 conmargin: "200px"
               }}
               sharedState={sharedState}
+              updateSharedState = {updateSharedState}
             />
             <Footer></Footer>
           </>
@@ -111,6 +131,8 @@ function App() {
                 h4class: "text-center",
                 conmargin: "200px"
               }}
+              updateSharedState={updateSharedState}
+              sharedState={sharedState}
             />
             <Footer></Footer>
           </>
@@ -153,7 +175,7 @@ function App() {
           <>
             <Hd sharedState={sharedState}></Hd>
             <div id='slidebanner'>
-              <Mainvideo className="position-relative"></Mainvideo>
+              <Mainvideo ></Mainvideo>
             </div>
             <MainSale
               sharedState={sharedState}
